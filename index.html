@@ -8,5 +8,20 @@
 </head>
 <body>
     <h2>Generador de Widget YouTube</h2>
+    <div class="mb-3">
+        <label class="form-label">Tipo de Widget:</label>
+        <select id="widgetType" class="form-select">
+            <option value="video">Video</option>
+            <option value="channel">Canal</option>
+            <option value="grid">Video Grid</option>
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">URL de YouTube:</label>
+        <input type="text" id="youtubeUrl" class="form-control" placeholder="Ingrese la URL del video o canal">
+    </div>
+    
+    <button id="generateWidget" class="btn btn-primary">Generar Widget</button>
 </body>
 </html>
