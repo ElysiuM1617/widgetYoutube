@@ -114,7 +114,57 @@ async function generateWidget() {
                 </div>
             </div>
         `;
+    }else if (type === "channel") {
+        const videoCount = widgetType.value === "grid" ? 9 : 3;
+        const videos = await fetchChannelVideos(id, videoCount);
+
+        const validVideos = videos.filter(video => video.id.videoId).slice(0, videoCount);
+
+        const channelData = await fetchChannelData(id);
+        if (!channelData) {
+            alert("No se pudo obtener información del canal.");
+            return;
+        }
+
+        const { snippet, statistics, brandingSettings } = channelData;
+        const bannerUrl = brandingSettings?.image?.bannerExternalUrl || "";
+
+        let channelHtml = `
+            <div class="card p-3">
+                <img src="${bannerUrl}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                <div class="d-flex align-items-center mt-2">
+                    <img src="${snippet.thumbnails.high.url}" class="rounded-circle me-2" width="50">
+                    <div>
+                        <h5 class="mb-0">${snippet.title}</h5>
+                        <small class="text-muted">${statistics.subscriberCount} suscriptores</small>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        let videosHtml = validVideos.length > 0 ? validVideos.map(video => `
+            <div class="col-md-4 mb-3">
+                <div class="card video-card" data-video-id="${video.id.videoId}">
+                    <img src="${video.snippet.thumbnails.medium.url}" class="card-img-top">
+                    <div class="card-body">
+                        <h6 class="card-title">${video.snippet.title}</h6>
+                    </div>
+                </div>
+            </div>
+        `).join("") : `<p class="text-muted">Este canal no tiene videos públicos.</p>`;
+
+        widgetContainer.innerHTML = channelHtml + `<div class="row mt-3">${videosHtml}</div>`;
+
+        document.querySelectorAll(".video-card").forEach(card => {
+            card.addEventListener("click", function () {
+                const videoId = this.getAttribute("data-video-id");
+                openModal(videoId);
+            });
+        });
+    } else {
+        alert("El tipo de URL no coincide con el widget seleccionado.");
     }
+
 }
 
 
