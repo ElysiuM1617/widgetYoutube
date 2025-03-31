@@ -166,5 +166,7 @@ async function generateWidget() {
     }
 
 }
+// Evento para generar el widget
+generateBtn.addEventListener("click", generateWidget);
 
 
