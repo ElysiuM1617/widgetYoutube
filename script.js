@@ -45,4 +45,20 @@ async function getChannelIdByUsername(username) {
     return data.items?.[0]?.id?.channelId || null;
 }
 
+async function fetchChannelData(channelId) {
+    if (!API_KEY) return null;
+
+    const response = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&id=${channelId}&key=${API_KEY}`);
+    const data = await response.json();
+    return data.items?.[0] || null;
+}
+
+async function fetchVideoData(videoId) {
+    if (!API_KEY) return null;
+
+    const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${API_KEY}`);
+    const data = await response.json();
+    return data.items?.[0] || null;
+}
+
 
