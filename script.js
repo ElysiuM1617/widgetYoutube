@@ -78,6 +78,43 @@ function openModal(videoId) {
     new bootstrap.Modal(document.getElementById("videoModal")).show();
 }
 
+async function generateWidget() {
+    if (!API_KEY) {
+        alert("La API Key aún no se ha cargado. Intenta de nuevo.");
+        return;
+    }
 
+    const url = youtubeUrl.value.trim();
+    if (!url) {
+        alert("Ingresa una URL de YouTube válida.");
+        return;
+    }
+
+    const extracted = await extractId(url);
+    if (!extracted || !extracted.id) {
+        alert("URL no válida.");
+        return;
+    }
+
+    const { type, id } = extracted;
+
+    if (widgetType.value === "video" && type === "video") {
+        const videoData = await fetchVideoData(id);
+        if (!videoData) {
+            alert("No se pudo obtener información del video.");
+            return;
+        }
+
+        const { snippet } = videoData;
+        widgetContainer.innerHTML = `
+            <div class='card' style='width: 560px; cursor: pointer;' onclick='openModal("${id}")'>
+                <img src='${snippet.thumbnails.medium.url}' class='card-img-top'>
+                <div class='card-body p-2'>
+                    <h6 class='card-title' style='font-size: 16px;'>${snippet.title}</h6>
+                </div>
+            </div>
+        `;
+    }
+}
 
 
