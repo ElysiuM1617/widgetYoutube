@@ -61,4 +61,13 @@ async function fetchVideoData(videoId) {
     return data.items?.[0] || null;
 }
 
+async function fetchChannelVideos(channelId, maxResults) {
+    if (!API_KEY) return [];
+
+    const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=${maxResults}&order=date&type=video&key=${API_KEY}`);
+    const data = await response.json();
+    return data.items || [];
+}
+
+
 
