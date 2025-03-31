@@ -69,5 +69,15 @@ async function fetchChannelVideos(channelId, maxResults) {
     return data.items || [];
 }
 
+function openModal(videoId) {
+    modalVideo.innerHTML = `
+        <iframe width="100%" height="400px" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
+        <p class="mt-3"><strong>Código embebido:</strong></p>
+        <textarea class="form-control" rows="3" readonly><iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe></textarea>
+    `;
+    new bootstrap.Modal(document.getElementById("videoModal")).show();
+}
+
+
 
 
