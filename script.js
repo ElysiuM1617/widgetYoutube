@@ -1,26 +1,31 @@
 let API_KEY = "";
 
+// Función para cargar la API Key
 async function loadApiKey() {
     try {
         const response = await fetch("config.php");
         const data = await response.json();
         API_KEY = data.apiKey;
+        // Habilitar el botón y restaurar el texto una vez que la API Key se haya cargado
+        generateBtn.disabled = false;
+        generateBtn.innerText = "Generar Widget"; // Cambia el texto del botón
     } catch (error) {
         console.error("Error al obtener la API Key:", error);
     }
 }
 
-// Cargar la API Key antes de ejecutar cualquier otra función
-loadApiKey();
+// Mostrar mensaje de carga en el botón
+const generateBtn = document.getElementById("generateWidget");
+generateBtn.innerText = "Cargando..."; // Mensaje de carga
+generateBtn.disabled = true; // Deshabilitar el botón mientras se carga la API Key
+
+loadApiKey(); // Cargar la API Key al inicio
 
 const widgetType = document.getElementById("widgetType");
 const youtubeUrl = document.getElementById("youtubeUrl");
-const generateBtn = document.getElementById("generateWidget");
 const widgetContainer = document.getElementById("widgetContainer");
 
-generateBtn.addEventListener("click", () => {
-    console.log("Generar widget presionado");
-});
+const modalVideo = document.getElementById("modalVideo");
 
 async function extractId(url) {
     let match = url.match(/youtube\.com\/channel\/([\w-]+)/);
@@ -69,15 +74,24 @@ async function fetchChannelVideos(channelId, maxResults) {
     return data.items || [];
 }
 
+// Función para abrir el modal con el video correcto
 function openModal(videoId) {
-    modalVideo.innerHTML = `
-        <iframe width="100%" height="400px" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
+    modalVideo.innerHTML = ` 
+        <iframe width="100%" height="400px" src="https://www.youtube.com/embed/${videoId}?autoplay=1" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>
         <p class="mt-3"><strong>Código embebido:</strong></p>
-        <textarea class="form-control" rows="3" readonly><iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe></textarea>
+        <textarea class="form-control" rows="3" readonly><iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}?autoplay=1" frameborder="0" allowfullscreen></iframe></textarea>
     `;
-    new bootstrap.Modal(document.getElementById("videoModal")).show();
+
+    const modal = new bootstrap.Modal(document.getElementById("videoModal"));
+    modal.show();
+
+    // Evento para limpiar el iframe cuando se cierre el modal
+    document.getElementById("videoModal").addEventListener("hidden.bs.modal", () => {
+        modalVideo.innerHTML = ""; // Limpiar el contenido del modal
+    });
 }
 
+// Función para generar el widget
 async function generateWidget() {
     if (!API_KEY) {
         alert("La API Key aún no se ha cargado. Intenta de nuevo.");
@@ -107,40 +121,42 @@ async function generateWidget() {
 
         const { snippet } = videoData;
         widgetContainer.innerHTML = `
-            <div class='card' style='width: 560px; cursor: pointer;' onclick='openModal("${id}")'>
+            <div class='card' style='width: 560px; cursor: pointer;' data-video-id="${id}">
                 <img src='${snippet.thumbnails.medium.url}' class='card-img-top'>
                 <div class='card-body p-2'>
                     <h6 class='card-title' style='font-size: 16px;'>${snippet.title}</h6>
                 </div>
             </div>
         `;
-    }else if (type === "channel") {
+    } else if (type === "channel") {
+        if (widgetType.value !== "grid") {
+            const channelData = await fetchChannelData(id);
+            if (!channelData) {
+                alert("No se pudo obtener información del canal.");
+                return;
+            }
+
+            const { snippet, statistics, brandingSettings } = channelData;
+            const bannerUrl = brandingSettings?.image?.bannerExternalUrl || "";
+
+            widgetContainer.innerHTML = `
+                <div class="card p-3">
+                    <img src="${bannerUrl}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                    <div class="d-flex align-items-center mt-2">
+                        <img src="${snippet.thumbnails.high.url}" class="rounded-circle me-2" width="50">
+                        <div>
+                            <h5 class="mb-0">${snippet.title}</h5>
+                            <small class="text-muted">${statistics.subscriberCount} suscriptores</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         const videoCount = widgetType.value === "grid" ? 9 : 3;
         const videos = await fetchChannelVideos(id, videoCount);
 
         const validVideos = videos.filter(video => video.id.videoId).slice(0, videoCount);
-
-        const channelData = await fetchChannelData(id);
-        if (!channelData) {
-            alert("No se pudo obtener información del canal.");
-            return;
-        }
-
-        const { snippet, statistics, brandingSettings } = channelData;
-        const bannerUrl = brandingSettings?.image?.bannerExternalUrl || "";
-
-        let channelHtml = `
-            <div class="card p-3">
-                <img src="${bannerUrl}" class="card-img-top" style="height: 120px; object-fit: cover;">
-                <div class="d-flex align-items-center mt-2">
-                    <img src="${snippet.thumbnails.high.url}" class="rounded-circle me-2" width="50">
-                    <div>
-                        <h5 class="mb-0">${snippet.title}</h5>
-                        <small class="text-muted">${statistics.subscriberCount} suscriptores</small>
-                    </div>
-                </div>
-            </div>
-        `;
 
         let videosHtml = validVideos.length > 0 ? validVideos.map(video => `
             <div class="col-md-4 mb-3">
@@ -153,20 +169,29 @@ async function generateWidget() {
             </div>
         `).join("") : `<p class="text-muted">Este canal no tiene videos públicos.</p>`;
 
-        widgetContainer.innerHTML = channelHtml + `<div class="row mt-3">${videosHtml}</div>`;
+        if (widgetType.value === "grid") {
+            widgetContainer.innerHTML = `<div class="row mt-3">${videosHtml}</div>`;
+        } else {
+            widgetContainer.innerHTML += `<div class="row mt-3">${videosHtml}</div>`;
+        }
 
+        // Escuchar clics en los videos
         document.querySelectorAll(".video-card").forEach(card => {
             card.addEventListener("click", function () {
                 const videoId = this.getAttribute("data-video-id");
-                openModal(videoId);
+                openModal(videoId);  // Abre el video en el modal
             });
         });
     } else {
         alert("El tipo de URL no coincide con el widget seleccionado.");
     }
-
 }
-// Evento para generar el widget
-generateBtn.addEventListener("click", generateWidget);
 
+// Cargar la API Key al inicio
+loadApiKey();
+
+// Evento para generar el widget
+generateBtn.addEventListener("click", async () => {
+    await generateWidget();
+});
 
